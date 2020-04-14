@@ -9,7 +9,6 @@ import com.google.api.services.dataproc.model.JobPlacement;
 import com.google.api.services.dataproc.model.SubmitJobRequest;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
@@ -33,20 +32,20 @@ import java.util.List;
 
 
 public class MainPanel extends JFrame implements ActionListener {
-    private JTextArea loadedFiles = new JTextArea("");
-    private JTextArea title = new JTextArea("Praneeth's Search Engine");
-    private JTextArea loadMyEngine = new JTextArea("Load My Engine");
-    private JButton chooseFilesButton = new JButton("Choose Files");
     private JButton constructInvertedIndices = new JButton("Construct Inverted Indices");
+    private JButton chooseFilesButton = new JButton("Choose Files");
     private JFileChooser fileChooser = new JFileChooser();
+    private JTextArea loadedFiles = new JTextArea("");
 
     private static HttpRequestInitializer requestInitializer;
     private static GoogleCredentials credentials;
+    private static double rand;
     private File[] files;
 
     private MainPanel() {
         Container contentPane = this.getContentPane();
         contentPane.setBackground(Color.WHITE);
+
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setTitle("Praneeth's Search Engine");
         this.setSize(800, 500);
@@ -54,16 +53,18 @@ public class MainPanel extends JFrame implements ActionListener {
         this.setVisible(true);
         this.setLayout(null);
 
+        JTextArea title = new JTextArea("Praneeth's Search Engine");
         title.setFont(new Font("TimesRoman", Font.PLAIN, 15));
         title.setBounds(0, 0, 180, 30);
         title.setEditable(false);
 
         loadedFiles.setFont(new Font("TimesRoman", Font.PLAIN, 15));
         loadedFiles.setBounds(250, 200, 200, 100);
+        loadedFiles.setWrapStyleWord(true);
         loadedFiles.setEditable(false);
         loadedFiles.setLineWrap(true);
-        loadedFiles.setWrapStyleWord(true);
 
+        JTextArea loadMyEngine = new JTextArea("Load My Engine");
         loadMyEngine.setFont(new Font("TimesRoman", Font.BOLD, 25));
         loadMyEngine.setBounds(250, 100, 200, 30);
         loadMyEngine.setEditable(false);
@@ -73,11 +74,11 @@ public class MainPanel extends JFrame implements ActionListener {
         constructInvertedIndices.setBounds(225, 300, 250, 50);
         constructInvertedIndices.addActionListener(this);
 
+        contentPane.add(constructInvertedIndices);
+        contentPane.add(chooseFilesButton);
         contentPane.add(loadMyEngine);
         contentPane.add(loadedFiles);
         contentPane.add(title);
-        contentPane.add(chooseFilesButton);
-        contentPane.add(constructInvertedIndices);
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -97,9 +98,8 @@ public class MainPanel extends JFrame implements ActionListener {
     private static void constructInvertedIndices() throws IOException {
         Dataproc dataproc = new Dataproc.Builder(new NetHttpTransport(), new JacksonFactory(), requestInitializer).setApplicationName("InvertedIndex").build();
 
-        double rand = Math.random() * 10000;
         List<String> args = new ArrayList<>();
-        args.add("gs://dataproc-staging-us-west1-1079873161681-xg8hpwav/Data");
+        args.add("gs://dataproc-staging-us-west1-1079873161681-xg8hpwav/Data" + rand);
         args.add("gs://dataproc-staging-us-west1-1079873161681-xg8hpwav/output" + rand);
         List<String> jars = new ArrayList<>();
         jars.add("gs://dataproc-staging-us-west1-1079873161681-xg8hpwav/JAR/invertedindex.jar");
@@ -116,8 +116,8 @@ public class MainPanel extends JFrame implements ActionListener {
         Storage storage = StorageOptions.newBuilder().setCredentials(credentials).build().getService();
         for (File file : files) {
             storage.create(
-                    BlobInfo.newBuilder("dataproc-staging-us-west1-1079873161681-xg8hpwav", "Data/" + file.getName())
-                    .build()
+                    BlobInfo.newBuilder("dataproc-staging-us-west1-1079873161681-xg8hpwav", "Data" + rand + "/" + file.getName())
+                            .build()
             );
         }
     }
@@ -132,6 +132,7 @@ public class MainPanel extends JFrame implements ActionListener {
             for (File file : files) {
                 loadedFiles.append(file.getName() + "\n");
             }
+            rand = Math.random() * 10000;
             uploadFiles();
         } else {
             loadedFiles.append("File Selection Canceled");
@@ -155,7 +156,7 @@ public class MainPanel extends JFrame implements ActionListener {
     }
 
     public static void main(String[] args) throws IOException {
-        authExplicit("C:\\Users\\Praneeth\\Downloads\\cs1660_course_project\\src\\main\\resources\\creds.json");
+        authExplicit(new File("src/main/resources/creds.json").getAbsolutePath());
         new MainPanel();
     }
 }
